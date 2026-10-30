@@ -889,7 +889,18 @@ require('lazy').setup({
         transparent = true,
         styles = {
           comments = { italic = false }, -- Disable italics in comments
+          -- sidebars = 'transparent',
+          -- floats = 'transparent',
         },
+        -- on_highlights = function(hl, colors)
+        --   hl.Comment = {
+        --     italic = false,
+        --   }
+        --   hl['@comment.lua'] = {
+        --     fg = '#DAD8C9',
+        --     italic = false,
+        --   }
+        -- end,
       }
 
       -- Load the colorscheme here.
@@ -939,9 +950,10 @@ require('lazy').setup({
       --  Check out: https://github.com/echasnovski/mini.nvim
     end,
   },
-  -- new code snippet for treesitter I added
+
   {
     'nvim-treesitter/nvim-treesitter',
+    branch = 'master',
     build = 'TSUpdate',
     main = 'nvim-treesitter.configs',
 
@@ -955,7 +967,6 @@ require('lazy').setup({
       indent = { enable = true, disable = { 'ruby' } },
     },
 
-    -- new code snippet for treesitter I added from GPT end
     -- There are additional nvim-treesitter modules that you can use to interact
     -- with nvim-treesitter. You should go explore a few and see what interests you:
     --
@@ -1019,3 +1030,25 @@ require('lazy').setup({
 vim.keymap.set('n', '<C-t>', ':split term://zsh | resize 15<CR>', { noremap = true, silent = true })
 -- Easier way to exit terminal mode
 vim.keymap.set('t', '<Esc>', [[<C-\><C-n]], { noremap = true, silent = true })
+--
+-- local function transparent_telescope()
+--   for _, group in ipairs {
+--     'TelescopeNormal',
+--     'TelescopeBorder',
+--     'TelescopePromptNormal',
+--     'TelescopePromptBorder',
+--     'TelescopeResultsNormal',
+--     'TelescopeResultsBorder',
+--     'TelescopePreviewNormal',
+--     'TelescopePreviewBorder',
+--   } do
+--     vim.api.nvim_set_hl(0, group, { bg = 'NONE' })
+--   end
+-- end
+--
+-- vim.api.nvim_create_autocmd('ColorScheme', {
+--   group = vim.api.nvim_create_augroup('TransparentTelescope', { clear = true }),
+--   callback = transparent_telescope,
+-- })
+--
+-- transparent_telescope()
