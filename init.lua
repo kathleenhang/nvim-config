@@ -84,6 +84,12 @@ vim.o.splitbelow = true
 vim.o.list = true
 vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
 
+-- Use spaces instead of tabs
+vim.opt.expandtab = true
+vim.opt.shiftwidth = 2
+vim.opt.softtabstop = 2
+vim.opt.tabstop = 2
+
 -- Preview substitutions live, as you type!
 vim.o.inccommand = 'split'
 
@@ -723,6 +729,12 @@ require('lazy').setup({
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
       },
+      -- Force Stylua to use two spaces instead of tabs
+      formatters = {
+        stylua = {
+          prepend_args = { '--indent-type', 'Spaces', '--indent-width', '2' },
+        },
+      },
     },
   },
 
@@ -976,9 +988,6 @@ require('lazy').setup({
 -- vim: ts=2 sts=2 sw=2 et
 --
 -- Open terminal in horizontal split at the bottom
--- vim.keymap.set('n', '<C-t>', ':split term://zsh | resize 15<CR>', { noremap = true, silent = true })
---
 vim.keymap.set('n', '<C-t>', ':split | terminal<CR>:resize 15<CR>i', { silent = true })
 -- Easier way to exit terminal mode
 vim.keymap.set('t', '<Esc>', [[<C-\><C-n]], { noremap = true, silent = true })
---
