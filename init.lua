@@ -111,6 +111,19 @@ vim.o.confirm = true
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
+-- Sessions keymaps - save
+vim.keymap.set('n', '<leader>Ss', function()
+  vim.cmd 'mksession! Session.vim'
+end, { desc = 'Save session' })
+-- Sessions keymaps - restore
+vim.keymap.set('n', '<leader>Sl', function()
+  if vim.fn.filereadable 'Session.vim' == 1 then
+    vim.cmd 'source Session.vim'
+  else
+    vim.notify 'No Session.vim in this directory'
+  end
+end, { desc = 'Load session' })
+
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
@@ -284,6 +297,7 @@ require('lazy').setup({
       spec = {
         { '<leader>s', group = '[S]earch' },
         { '<leader>t', group = '[T]oggle' },
+        { '<leader>S', group = '[S]ession'},
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
       },
     },
