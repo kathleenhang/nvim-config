@@ -185,6 +185,153 @@ end
 local rtp = vim.opt.rtp
 rtp:prepend(lazypath)
 
+-- Countdown timer with sound for macOS and Windows
+do
+  local countdown = {
+    timer = nil,
+    deadline = nil,
+  }
+
+  -- Play sound in a separate process without blocking Neovim
+  local function play_timer_sound()
+    local command
+
+    if vim.fn.has 'macunix' == 1 then
+      command = {
+        '/usr/bin/afplay',
+        '/System/Library/Sounds/Glass.aiff',
+      }
+    elseif vim.fn.has 'win32' == 1 then
+      command = {
+        'powershell.exe',
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        '[System.Media.SystemSounds]::Exclamation.Play(); Start-Sleep -Seconds 2',
+      }
+    else
+      vim.notify 'Timer sound is configured for macOS and Windows only.'
+      return
+    end
+
+    local ok, err = pcall(function()
+      vim.system(command, {}, function(result)
+        if result.code ~= 0 then
+          vim.schedule(function()
+            vim.notify('Could not play timer sound: ' .. (result.stderr or 'Unknown error'), vim.log.levels.WARN)
+          end)
+        end
+      end)
+    end)
+
+    if not ok then
+      vim.notify('Could not start timer sound: ' .. tostring(err), vim.log.levels.WARN)
+    end
+  end
+
+  -- Stop and clean up the current timer
+  local function cancel_countdown()
+    if countdown.timer then
+      countdown.timer:stop()
+      countdown.timer:close()
+    end
+
+    countdown.timer = nil
+    countdown.deadline = nil
+  end
+
+  -- Start a countdown
+  vim.keymap.set('n', '<leader>ws', function()
+    vim.ui.input({
+      prompt = 'Work session length (minutes): ',
+      default = '25',
+    }, function(input)
+      -- Escape closes the prompt without changing the current timer
+      if input == nil then
+        return
+      end
+
+      local minutes = tonumber(input)
+
+      -- Reject invalid numbers, including NaN
+      if not minutes or minutes ~= minutes or minutes <= 0 or minutes > 1440 then
+        vim.notify 'Enter a number greater than 0 and up to 1440.'
+        return
+      end
+
+      local duration_ms = math.floor(minutes * 60 * 1000)
+
+      if duration_ms < 1 then
+        vim.notify 'Choose a duration of at least 0.001 seconds.'
+        return
+      end
+
+      local timer = vim.uv.new_timer()
+
+      if not timer then
+        vim.notify('Could not create timer.', vim.log.levels.ERROR)
+        return
+      end
+
+      -- Starting a new countdown replaces the previous one
+      cancel_countdown()
+
+      countdown.timer = timer
+      countdown.deadline = vim.uv.hrtime() + duration_ms * 1e6
+
+      timer:start(
+        duration_ms,
+        0,
+        vim.schedule_wrap(function()
+          -- Ignore a callback if this timer was replaced or canceled
+          if countdown.timer ~= timer then
+            return
+          end
+
+          cancel_countdown()
+          play_timer_sound()
+
+          vim.notify('Work session complete! Time for a break.', vim.log.levels.WARN, { title = 'Work timer' })
+        end)
+      )
+
+      vim.notify('Countdown started: ' .. minutes .. ' minutes.')
+    end)
+  end, { desc = '[W]ork: [S]tart countdown' })
+
+  -- Check remaining time
+  vim.keymap.set('n', '<leader>wt', function()
+    if not countdown.deadline then
+      vim.notify 'No countdown is running.'
+      return
+    end
+
+    local seconds = math.max(0, math.ceil((countdown.deadline - vim.uv.hrtime()) / 1e9))
+
+    local minutes = math.floor(seconds / 60)
+    local remaining_seconds = seconds % 60
+
+    vim.notify(string.format('Time remaining: %02d:%02d', minutes, remaining_seconds))
+  end, { desc = '[W]ork: [T]ime remaining' })
+
+  -- Cancel without playing the sound
+  vim.keymap.set('n', '<leader>we', function()
+    if not countdown.timer then
+      vim.notify 'No countdown is running.'
+      return
+    end
+
+    cancel_countdown()
+    vim.notify 'Countdown canceled.'
+  end, { desc = '[W]ork: [E]nd countdown' })
+
+  -- Clean up when Neovim closes
+  vim.api.nvim_create_autocmd('VimLeavePre', {
+    callback = cancel_countdown,
+    desc = 'Clean up work countdown timer',
+  })
+end
+
 -- [[ Configure and install plugins ]]
 --
 --  To check the current status of your plugins, run
@@ -297,7 +444,8 @@ require('lazy').setup({
       spec = {
         { '<leader>s', group = '[S]earch' },
         { '<leader>t', group = '[T]oggle' },
-        { '<leader>S', group = '[S]ession'},
+        { '<leader>S', group = '[S]ession' },
+        { '<leader>w', group = '[W]ork timer' },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
       },
     },
